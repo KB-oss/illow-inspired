@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,9 +14,13 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Home, Upload, Loader2 } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/components/ui/use-toast';
 
 const Sell = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
@@ -36,6 +40,18 @@ const Sell = () => {
     features: '',
     images: [] as File[],
   });
+
+  useEffect(() => {
+    // Redirect to login if user is not authenticated
+    if (!user) {
+      toast({
+        title: "Authentication required",
+        description: "Please log in to list a property.",
+        variant: "destructive",
+      });
+      navigate('/login');
+    }
+  }, [user, navigate]);
 
   const handleChange = (field: string, value: string) => {
     setFormState((prev) => ({
@@ -63,23 +79,119 @@ const Sell = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user) {
+      toast({
+        title: "Authentication required",
+        description: "Please log in to list a property.",
+        variant: "destructive",
+      });
+      navigate('/login');
+      return;
+    }
+
     setIsSubmitting(true);
     setError('');
 
     try {
-      // This would connect to Supabase in the real implementation
-      // Simulate API call
+      // Format features as an array from comma-separated string
+      const featuresArray = formState.features
+        ? formState.features.split(',').map(feature => feature.trim())
+        : [];
+
+      // Format street address
+      const streetAddress = formState.address;
+
+      // Upload images to Supabase Storage
+      const imageUrls = [];
+      if (formState.images.length > 0) {
+        for (const image of formState.images) {
+          const fileExt = image.name.split('.').pop();
+          const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+          const filePath = `${user.id}/${fileName}`;
+
+          const { error: uploadError, data } = await supabase.storage
+            .from('property_images')
+            .upload(filePath, image);
+
+          if (uploadError) {
+            throw new Error(`Error uploading image: ${uploadError.message}`);
+          }
+
+          const { data: { publicUrl } } = supabase.storage
+            .from('property_images')
+            .getPublicUrl(filePath);
+
+          imageUrls.push(publicUrl);
+        }
+      }
+
+      // Insert property data into Supabase
+      const { error } = await supabase
+        .from('properties')
+        .insert({
+          title: formState.title,
+          description: formState.description,
+          price: parseFloat(formState.price),
+          property_type: formState.propertyType,
+          category: formState.category,
+          bedrooms: parseInt(formState.bedrooms),
+          bathrooms: parseFloat(formState.bathrooms),
+          square_feet: parseInt(formState.squareFeet),
+          street_address: streetAddress,
+          city: formState.city,
+          state: formState.state,
+          zip_code: formState.zip,
+          features: featuresArray,
+          user_id: user.id
+        });
+
+      if (error) throw error;
+
+      // Get the newly created property to add images
+      const { data: newProperty, error: fetchError } = await supabase
+        .from('properties')
+        .select()
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      // Insert images into property_images table
+      if (imageUrls.length > 0) {
+        const imagesToInsert = imageUrls.map((url, index) => ({
+          property_id: newProperty.id,
+          image_url: url,
+          is_primary: index === 0 // First image is primary
+        }));
+
+        const { error: imageInsertError } = await supabase
+          .from('property_images')
+          .insert(imagesToInsert);
+
+        if (imageInsertError) throw imageInsertError;
+      }
+
+      setSuccess(true);
+      toast({
+        title: "Listing created",
+        description: "Your property has been successfully listed.",
+      });
+      
+      // Redirect after successful submission
       setTimeout(() => {
-        setSuccess(true);
-        setIsSubmitting(false);
-        
-        // In a real implementation, we'd redirect to the new property page
-        setTimeout(() => {
-          navigate('/listings');
-        }, 2000);
-      }, 1500);
+        navigate('/listings');
+      }, 2000);
     } catch (err) {
-      setError('An error occurred while creating your listing. Please try again.');
+      console.error("Error submitting property:", err);
+      setError(err instanceof Error ? err.message : 'An error occurred while creating your listing. Please try again.');
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : 'An error occurred while creating your listing.',
+        variant: "destructive",
+      });
+    } finally {
       setIsSubmitting(false);
     }
   };
@@ -112,6 +224,15 @@ const Sell = () => {
             View Listings
           </Button>
         </div>
+      </div>
+    );
+  }
+
+  // Show loading or redirect if not authenticated
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -228,7 +349,7 @@ const Sell = () => {
                       <SelectItem value="3">3</SelectItem>
                       <SelectItem value="4">4</SelectItem>
                       <SelectItem value="5">5</SelectItem>
-                      <SelectItem value="6+">6+</SelectItem>
+                      <SelectItem value="6">6+</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -249,7 +370,7 @@ const Sell = () => {
                       <SelectItem value="2.5">2.5</SelectItem>
                       <SelectItem value="3">3</SelectItem>
                       <SelectItem value="3.5">3.5</SelectItem>
-                      <SelectItem value="4+">4+</SelectItem>
+                      <SelectItem value="4">4+</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

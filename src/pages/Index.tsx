@@ -3,15 +3,40 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import CategorySection from '@/components/CategorySection';
-import { getPropertiesByCategory, properties } from '@/data/properties';
+import { fetchAllProperties, getPropertiesByCategory, Property } from '@/data/properties';
 import { Search, Home } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { useAuth } from '@/hooks/useAuth';
 
 const Index = () => {
-  const [newListings, setNewListings] = useState(getPropertiesByCategory('new'));
-  const [popularListings, setPopularListings] = useState(getPropertiesByCategory('popular'));
-  const [soldListings, setSoldListings] = useState(getPropertiesByCategory('sold'));
+  const [newListings, setNewListings] = useState<Property[]>([]);
+  const [popularListings, setPopularListings] = useState<Property[]>([]);
+  const [soldListings, setSoldListings] = useState<Property[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
+
+  useEffect(() => {
+    const loadProperties = async () => {
+      setLoading(true);
+      try {
+        // Fetch properties by category
+        const newProps = await getPropertiesByCategory('new');
+        const popularProps = await getPropertiesByCategory('popular');
+        const soldProps = await getPropertiesByCategory('sold');
+        
+        setNewListings(newProps);
+        setPopularListings(popularProps);
+        setSoldListings(soldProps);
+      } catch (error) {
+        console.error("Error loading properties:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadProperties();
+  }, []);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,23 +87,32 @@ const Index = () => {
 
       {/* Categories */}
       <div className="container mx-auto px-4 py-10">
-        <CategorySection
-          title="New Listings"
-          properties={newListings}
-          viewAllLink="/listings?category=new"
-        />
+        {loading ? (
+          <div className="text-center py-20">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+            <p className="mt-4 text-muted-foreground">Loading properties...</p>
+          </div>
+        ) : (
+          <>
+            <CategorySection
+              title="New Listings"
+              properties={newListings}
+              viewAllLink="/listings?category=new"
+            />
 
-        <CategorySection
-          title="Popular Properties"
-          properties={popularListings}
-          viewAllLink="/listings?category=popular"
-        />
+            <CategorySection
+              title="Popular Properties"
+              properties={popularListings}
+              viewAllLink="/listings?category=popular"
+            />
 
-        <CategorySection
-          title="Sold Properties"
-          properties={soldListings}
-          viewAllLink="/listings?category=sold"
-        />
+            <CategorySection
+              title="Sold Properties"
+              properties={soldListings}
+              viewAllLink="/listings?category=sold"
+            />
+          </>
+        )}
 
         {/* CTA Section */}
         <section className="my-16 bg-gradient-to-r from-primary-light to-primary p-8 rounded-lg shadow-lg text-white">
@@ -89,14 +123,14 @@ const Index = () => {
                 List your property with us and reach thousands of potential buyers
               </p>
             </div>
-            <Link to="/login">
+            <Link to={user ? "/sell" : "/login"}>
               <Button 
                 size="lg"
                 variant="secondary"
                 className="whitespace-nowrap"
               >
                 <Home className="mr-2 h-5 w-5" />
-                List Your Property
+                {user ? "List Your Property" : "Login to List Property"}
               </Button>
             </Link>
           </div>

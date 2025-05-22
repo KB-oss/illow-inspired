@@ -18,13 +18,17 @@ const PropertyCard = ({ property }: PropertyCardProps) => {
   };
 
   return (
-    <Link to={`/property/${property.id}`}>
+    <Link to={`/listings/${property.id}`}>
       <Card className="property-card overflow-hidden hover:shadow-lg transition-shadow duration-300 h-full">
         <div className="relative h-52 overflow-hidden">
           <img
             src={property.images[0]}
             alt={property.title}
             className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
+            onError={(e) => {
+              const target = e.target as HTMLImageElement;
+              target.src = 'https://placehold.co/600x400?text=No+Image';
+            }}
           />
           <Badge 
             className="absolute top-2 right-2"
