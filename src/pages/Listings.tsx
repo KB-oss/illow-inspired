@@ -5,7 +5,7 @@ import { properties, Property } from '@/data/properties';
 import PropertyCard from '@/components/PropertyCard';
 import FilterSidebar, { FilterOptions } from '@/components/FilterSidebar';
 import { Button } from '@/components/ui/button';
-import { Slider } from 'lucide-react';
+import { SlidersHorizontal } from 'lucide-react';
 
 const Listings = () => {
   const [searchParams] = useSearchParams();
@@ -109,7 +109,7 @@ const Listings = () => {
                 className="md:hidden flex items-center gap-2"
                 onClick={() => setIsFilterOpen(true)}
               >
-                <Slider size={16} />
+                <SlidersHorizontal size={16} />
                 Filters
               </Button>
             </div>
