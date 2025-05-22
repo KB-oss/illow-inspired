@@ -1,39 +1,33 @@
 
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { LogIn } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const navigate = useNavigate();
+  const { signIn, user, loading } = useAuth();
+
+  // Redirect if already logged in
+  if (user && !loading) {
+    return <Navigate to="/" />;
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    setIsLoading(true);
     
-    // Mock login - would use Supabase auth in real implementation
     try {
-      // Simulate API call
-      setTimeout(() => {
-        if (email === 'user@example.com' && password === 'password') {
-          // Success - would set auth state in real implementation
-          navigate('/');
-        } else {
-          setError('Invalid email or password');
-        }
-        setIsLoading(false);
-      }, 1000);
+      await signIn(email, password);
     } catch (err) {
-      setError('An error occurred during login. Please try again.');
-      setIsLoading(false);
+      // Error is already handled in the useAuth hook
+      setError('Invalid email or password');
     }
   };
 
@@ -95,10 +89,10 @@ const Login = () => {
           <Button
             type="submit"
             className="w-full flex items-center justify-center gap-2"
-            disabled={isLoading}
+            disabled={loading}
           >
             <LogIn size={18} />
-            {isLoading ? 'Signing in...' : 'Sign in'}
+            {loading ? 'Signing in...' : 'Sign in'}
           </Button>
 
           <div className="text-center mt-4">

@@ -1,12 +1,13 @@
 
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Checkbox } from '@/components/ui/checkbox';
-import { User, Plus } from 'lucide-react';
+import { User } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
 
 const Signup = () => {
   const [name, setName] = useState('');
@@ -15,8 +16,12 @@ const Signup = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const navigate = useNavigate();
+  const { signUp, user, loading } = useAuth();
+
+  // Redirect if already logged in
+  if (user && !loading) {
+    return <Navigate to="/" />;
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,19 +38,11 @@ const Signup = () => {
       return;
     }
     
-    setIsLoading(true);
-    
-    // Mock signup - would use Supabase auth in real implementation
     try {
-      // Simulate API call
-      setTimeout(() => {
-        // Success - would set auth state in real implementation
-        navigate('/');
-        setIsLoading(false);
-      }, 1000);
+      await signUp(email, password);
+      // Metadata like name will be stored when the user is confirmed
     } catch (err) {
-      setError('An error occurred during signup. Please try again.');
-      setIsLoading(false);
+      // Error is already handled in the useAuth hook
     }
   };
 
@@ -144,10 +141,10 @@ const Signup = () => {
           <Button
             type="submit"
             className="w-full flex items-center justify-center gap-2"
-            disabled={isLoading}
+            disabled={loading}
           >
             <User size={18} />
-            {isLoading ? 'Creating account...' : 'Create Account'}
+            {loading ? 'Creating account...' : 'Create Account'}
           </Button>
 
           <div className="text-center mt-4">

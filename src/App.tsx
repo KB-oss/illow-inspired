@@ -1,39 +1,39 @@
 
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Navbar from "@/components/Navbar";
-import Index from "./pages/Index";
-import Listings from "./pages/Listings";
-import PropertyDetail from "./pages/PropertyDetail";
-import Login from "./pages/Login";
-import Signup from "./pages/Signup";
-import Sell from "./pages/Sell";
-import NotFound from "./pages/NotFound";
+import { AuthProvider } from '@/hooks/useAuth';
 
-const queryClient = new QueryClient();
+import Navbar from '@/components/Navbar';
+import Index from '@/pages/Index';
+import Listings from '@/pages/Listings';
+import PropertyDetail from '@/pages/PropertyDetail';
+import Login from '@/pages/Login';
+import Signup from '@/pages/Signup';
+import NotFound from '@/pages/NotFound';
+import Sell from '@/pages/Sell';
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
+import './App.css';
+
+function App() {
+  return (
+    <Router>
+      <AuthProvider>
         <Navbar />
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/listings" element={<Listings />} />
-          <Route path="/property/:id" element={<PropertyDetail />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
-          <Route path="/sell" element={<Sell />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+        <main>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/listings" element={<Listings />} />
+            <Route path="/listings/:id" element={<PropertyDetail />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<Signup />} />
+            <Route path="/sell" element={<Sell />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </main>
+        <Toaster />
+      </AuthProvider>
+    </Router>
+  );
+}
 
 export default App;
