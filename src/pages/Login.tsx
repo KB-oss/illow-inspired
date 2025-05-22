@@ -37,7 +37,7 @@ const Login = () => {
         <div className="text-center">
           <h2 className="text-3xl font-bold">Welcome Back</h2>
           <p className="mt-2 text-sm text-muted-foreground">
-            Sign in to your account to access your properties
+            Sign in to your account to access your properties!
           </p>
         </div>
 
